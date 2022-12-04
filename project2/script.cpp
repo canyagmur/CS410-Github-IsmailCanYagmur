@@ -4,15 +4,19 @@
 #include <sstream>
 #include <string>
 #include <map>
+#include <set>
+#include <algorithm>
 
 
 using namespace std;
 
 vector<string> FILE_STATES{ "NON-TERMINAL","TERMINAL","RULES","START"};
+vector<char> LETTER_POOL_CHAR{'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y'};
+
 struct CFG {
     vector<string> NON_TERMINAL;
     vector<string> TERMINAL;
-    map<string,vector<string>> RULES;
+    map<string,set<string>> RULES;
     string START;
 };
 
@@ -57,7 +61,7 @@ auto FileReader(string file_path){
                             //std::cout << token << std::endl;
                             line.erase(0, pos + delimiter.length());
                         }
-                        cfg.RULES[token].push_back(line);
+                        cfg.RULES[token].insert(line);
                         //std::cout << line << std::endl;
                     }
                     else if(file_state == FILE_STATES[3]){
@@ -73,6 +77,59 @@ auto FileReader(string file_path){
             }
             return cfg; }
 
+
+vector<int> findLocation(string sample, char findIt)
+{
+    vector<int> characterLocations;
+    for(int i =0; i < sample.size(); i++)
+        if(sample[i] == findIt)
+            characterLocations.push_back(i);
+
+    return characterLocations;
+}
+
+void permute_recursive(set<string> &permutations,vector<int> indexes_of_key_variables, int index_counter)
+{
+    if(index_counter == indexes_of_key_variables.size())
+        {
+            return;
+        }
+    else{
+        for(auto permuted_string:permutations){
+            //cout<<index_counter<<endl;
+            string temp = permuted_string;
+            temp[indexes_of_key_variables[index_counter]] ='E';
+            permutations.insert(temp);
+            permutations.insert(permuted_string);
+            permute_recursive(permutations,indexes_of_key_variables,index_counter+1);
+        }
+
+    }
+}
+auto remove_epsilon_rules(string key_variable,string string_containing_key_variable) 
+{
+    // if A->e, then key_variable is A and string_containing_key_variable is a string containing the key variable in RHS of the rules.
+    char findIt = key_variable[0]; //key variable is assumed to 
+    auto indexes_of_key_variables_in_string = findLocation(string_containing_key_variable,findIt);
+    //cout<<indexes_of_key_variables_in_string.size()+1<<endl;
+    set<string> all_permutations_temp;
+    all_permutations_temp.insert(string_containing_key_variable);
+    permute_recursive(all_permutations_temp,indexes_of_key_variables_in_string,0);
+    set<string> all_permutations;
+    for(auto str : all_permutations_temp)
+    {
+        str.erase(std::remove(str.begin(), str.end(), 'E'), str.end());
+        all_permutations.insert(str);
+    }
+    for(auto str : all_permutations)
+    {
+        cout<<str<<endl;
+    }
+    return all_permutations;
+
+
+}
+
 int main(int argc, char *argv[])
 {
     // if (argc < 2)
@@ -84,16 +141,24 @@ int main(int argc, char *argv[])
     // }
     // string file_path = argv[1];
 
+    vector<string> LETTER_POOL;
+    for(auto i : LETTER_POOL_CHAR){
+        LETTER_POOL.push_back(string(1,i));
+    }
+
+
     try {
         auto cfg = FileReader("G1.txt");
-        for(const auto& elem : cfg.RULES)
-        {
-        cout << elem.first << " : "<<endl;
-        for(const auto& elem2 : elem.second)
-        {
-            cout << elem2 << endl;
-        }
-        }
+
+        // for(const auto& elem : cfg.RULES)
+        // {
+        //     cout << elem.first << " : "<<endl;
+        //     for(const auto& elem2 : elem.second)
+        //     {
+        //         cout << elem2 << endl;
+        //     }
+        // }
+
 
    } catch (const std::invalid_argument& e) {
         std::cout << e.what() << std::endl;
