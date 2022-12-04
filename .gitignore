@@ -1,0 +1,4 @@
+project2/*
+!project2/G1.txt
+!project2/G2.txt
+!project2/*.cpp
