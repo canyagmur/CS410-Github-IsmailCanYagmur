@@ -19,6 +19,7 @@ struct CFG {
     vector<string> TERMINAL;
     map<string,set<string>> RULES;
     string START;
+    vector<string> insertionOrderOfRules;
 };
 
 
@@ -63,6 +64,8 @@ auto FileReader(string file_path){
                             line.erase(0, pos + delimiter.length());
                         }
                         cfg.RULES[token].insert(line);
+                        if(find(cfg.insertionOrderOfRules.begin(),cfg.insertionOrderOfRules.end(),token) == cfg.insertionOrderOfRules.end())
+                            cfg.insertionOrderOfRules.push_back(token);
                         //std::cout << line << std::endl;
                     }
                     else if(file_state == FILE_STATES[3]){
@@ -79,15 +82,19 @@ auto FileReader(string file_path){
             return cfg; }
 
 auto print_rules(CFG cfg){
-    for(auto rule : cfg.RULES)
+     for (auto rule : cfg.insertionOrderOfRules)
         {
-            cout<<rule.first<<"->";
-            for(auto rule_rhs : rule.second)
+            cout<<rule<<"->";
+            for(auto rule_rhs : cfg.RULES[rule])
             {
                 cout<<rule_rhs<<"|";
             }
             cout<<endl;
         }
+    // for(auto insertionOrder : cfg.insertionOrderOfRules)
+    //     {
+    //         cout<<insertionOrder<<endl;
+    //     }
 }
 auto print_rules(map<string,set<string>> RULES){
     for(auto rule : RULES)
@@ -208,8 +215,8 @@ auto search_rules_for_more_than_2_non_terminals_in_rhs(CFG cfg_in_cnf)
                     int non_terminal_counter = 0;
                     for(auto non_terminal_str : cfg_in_cnf.NON_TERMINAL)
                     {
-                        if(non_terminal_str == cfg_in_cnf.START)
-                            continue;
+                        //if(non_terminal_str == cfg_in_cnf.START)
+                            //continue;
                         non_terminal_counter+=count(rule_rhs.begin(), rule_rhs.end(), non_terminal_str[0]);
                     }
                     if(non_terminal_counter>2)
@@ -270,11 +277,12 @@ cout<<"----------------------------Rules of the original CFG--------------------
 print_rules(cfg);
 
  auto cfg_in_cnf = cfg;
-
-
- cfg_in_cnf.START = cfg.START + "0";
- cfg_in_cnf.NON_TERMINAL.push_back(cfg_in_cnf.START);
- cfg_in_cnf.RULES[cfg_in_cnf.START].insert(cfg.START);
+auto new_varcharacter_for_start = letters.back();
+letters.pop_back();
+cfg_in_cnf.START = new_varcharacter_for_start;
+cfg_in_cnf.NON_TERMINAL.push_back(cfg_in_cnf.START);
+cfg_in_cnf.RULES[cfg_in_cnf.START].insert(cfg.START);
+cfg_in_cnf.insertionOrderOfRules.insert(cfg_in_cnf.insertionOrderOfRules.begin(),cfg_in_cnf.START);
 
 cout<<"----------------------------Rules of the CFG AFTER New Start State is Added----------------------------"<<endl;
 print_rules(cfg_in_cnf);
@@ -292,15 +300,16 @@ while(1)
     {
         for(auto rule_with_empty_string : rules_containing_epsilon)
         {
-            auto other_rules = cfg_in_cnf.RULES;
-            other_rules.erase(rule_with_empty_string);
-            for(auto r : other_rules){
+            //auto other_rules = cfg_in_cnf.RULES; //TODO IT SHOULD ALSO LOOK AT ITSELF!!!
+            //other_rules.erase(rule_with_empty_string);
+            for(auto r : cfg_in_cnf.RULES){
                 for(auto rule_rhs : r.second)
                 {
                     if(rule_rhs.find(rule_with_empty_string) != std::string::npos) //if the other_rule_rhs contains the rule_with_empty_string 
                     {
                         auto new_rules = update_rule_by_removing_epsilon(rule_with_empty_string,rule_rhs);
                         cfg_in_cnf.RULES[r.first].insert(new_rules.begin(),new_rules.end());
+                        //cfg_in_cnf.insertionOrderOfRules.insert(cfg_in_cnf.insertionOrderOfRules.end(),new_rules.begin(),new_rules.end());
                     }
                 }
             }
@@ -351,37 +360,43 @@ cout<<"----------------------------Rules of the CFG AFTER A->B Rule-------------
 print_rules(cfg_in_cnf);
 
 
-//3.Find out all the rules having length of RHS > 1 and at least 1 terminal.
+//3.Find out all the rules having length of RHS > 1 and at least 1 terminal. //TODO : IMPLEMENT THE SAME LOGIC WITH 4th rule (X->a, Y->a problem.)
 auto desired_terminal_rule_mapping = search_rules_having_minlength_2_and_containing_atleast_one_terminal(cfg_in_cnf);
 for(auto mymapping : desired_terminal_rule_mapping)
 {
     auto terminal = mymapping.first;
+    auto new_varcharacter_for_terminal = letters.back();
+    letters.pop_back();
     for(auto rule : mymapping.second)
     {
         auto rule_lhs = rule.first;
-        for(auto x : cfg_in_cnf.RULES[rule_lhs])
+        for(auto x : rule.second)
         {
+
             
             if(x.size()>1)
             {
                 if(x.find(terminal) != string::npos)
                 {
-                    auto new_varcharacter_for_terminal = letters.back();
-                    letters.pop_back();
+
 
                     auto new_string = x;
                     replace(new_string.begin(), new_string.end(), terminal[0], new_varcharacter_for_terminal[0]); // replace all terminalchars to newchar
                     cfg_in_cnf.RULES[rule_lhs].erase(x);
                     cfg_in_cnf.RULES[rule_lhs].insert(new_string);
 
-                    cfg_in_cnf.RULES[new_varcharacter_for_terminal].insert(terminal);
-                    cfg_in_cnf.NON_TERMINAL.push_back(new_varcharacter_for_terminal);
+
                     
                     
                 }
             }
         }
     }
+
+    cfg_in_cnf.RULES[new_varcharacter_for_terminal].insert(terminal);
+    cfg_in_cnf.insertionOrderOfRules.push_back(new_varcharacter_for_terminal);
+    cfg_in_cnf.NON_TERMINAL.push_back(new_varcharacter_for_terminal);
+
 }
 
 cout<<"----------------------------Rules of the CFG AFTER Simplyfing Terminal Cases----------------------------"<<endl;
@@ -413,6 +428,7 @@ while(1)
                 cfg_in_cnf.RULES[rule_lhs].insert(combined_new_rule);
             }
             cfg_in_cnf.RULES[new_non_terminal_character].insert(new_non_terminal_second_part);
+            cfg_in_cnf.insertionOrderOfRules.push_back(new_non_terminal_character);
             cfg_in_cnf.NON_TERMINAL.push_back(new_non_terminal_character);
         }
     
@@ -445,6 +461,11 @@ int main(int argc, char *argv[])
 
 
     try {
+        //TODO
+        //allow S->e
+        //create a new start symbol from letters.(one character)
+
+
         auto cfg = FileReader("G1.txt");
 
         //remove all letters coming from cfg definition from the letters pool.
