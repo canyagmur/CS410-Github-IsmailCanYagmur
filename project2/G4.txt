@@ -1,0 +1,14 @@
+NON-TERMINAL
+S
+A
+B
+TERMINAL
+a
+b
+RULES
+S:AB
+A:B
+B:aBb
+B:e
+START
+S

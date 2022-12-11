@@ -180,12 +180,14 @@ auto search_rules_for_epsilon(CFG cfg)
     set<string> rules_containing_epsilon;
     for(auto rule : cfg.RULES)
     {
+
         for(auto rule_rhs : rule.second)
-        {
+        {   
             if(rule_rhs == "e")
                 rules_containing_epsilon.insert(rule.first);
         }
     }
+    //rules_containing_epsilon.erase(cfg.START);
     return rules_containing_epsilon;
 }
 auto search_rules_for_AB(CFG cfg)
@@ -234,6 +236,7 @@ auto search_rules_having_minlength_2_and_containing_atleast_one_terminal(CFG cfg
      map<string,map<string,set<string>>> terminals_with_minlength_2_and_containing_atleast_one_terminal;
      for(auto terminal : cfg_in_cnf.TERMINAL)
      {
+
          for(auto rule : cfg_in_cnf.RULES)
          {
              for(auto rule_rhs : rule.second)
@@ -292,6 +295,7 @@ print_rules(cfg_in_cnf);
 while(1)
 {
     auto rules_containing_epsilon = search_rules_for_epsilon(cfg_in_cnf);
+    rules_containing_epsilon.erase(cfg_in_cnf.START);
     if(rules_containing_epsilon.empty())
     {
         break;
@@ -362,6 +366,22 @@ print_rules(cfg_in_cnf);
 
 //3.Find out all the rules having length of RHS > 1 and at least 1 terminal. //TODO : IMPLEMENT THE SAME LOGIC WITH 4th rule (X->a, Y->a problem.)
 auto desired_terminal_rule_mapping = search_rules_having_minlength_2_and_containing_atleast_one_terminal(cfg_in_cnf);
+//print the mapping
+// for(auto mymapping : desired_terminal_rule_mapping)
+// {
+//     cout<<"Terminal : "<<mymapping.first<<endl;
+//     for(auto rule : mymapping.second)
+//     {
+//         cout<<"Rule : "<<rule.first<<"->"<<endl;
+//         for(auto x : rule.second)
+//         {
+//             cout<<x<<",";
+//         }
+//         cout<<endl;
+//     }
+// }
+
+
 for(auto mymapping : desired_terminal_rule_mapping)
 {
     auto terminal = mymapping.first;
@@ -370,15 +390,15 @@ for(auto mymapping : desired_terminal_rule_mapping)
     for(auto rule : mymapping.second)
     {
         auto rule_lhs = rule.first;
-        for(auto x : rule.second)
+        
+        auto temp = cfg_in_cnf.RULES[rule_lhs];
+        for(auto x : temp)
         {
-
-            
+            //cout<<"Rule : "<<rule_lhs<<"->"<<x<<endl;
             if(x.size()>1)
             {
                 if(x.find(terminal) != string::npos)
                 {
-
 
                     auto new_string = x;
                     replace(new_string.begin(), new_string.end(), terminal[0], new_varcharacter_for_terminal[0]); // replace all terminalchars to newchar
@@ -390,6 +410,7 @@ for(auto mymapping : desired_terminal_rule_mapping)
                     
                 }
             }
+            
         }
     }
 
@@ -466,7 +487,7 @@ int main(int argc, char *argv[])
         //create a new start symbol from letters.(one character)
 
 
-        auto cfg = FileReader("G1.txt");
+        auto cfg = FileReader("G2.txt");
 
         //remove all letters coming from cfg definition from the letters pool.
         for(auto a : cfg.NON_TERMINAL){
