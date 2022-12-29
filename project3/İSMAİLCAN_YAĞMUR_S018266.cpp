@@ -15,6 +15,7 @@
 using namespace std;
 vector<string> FILE_STATES{"INPUT", "TAPE", "BLANK", "STATES", "START", "ACCEPT", "REJECT", "TRANSITION", "STRING"};
 string INPUT_STRING;
+int TIMEOUT_IN_SECONDS = 5;
 typedef map<string, map<string, map<string, string>>> TransitionFunction;
 
 struct TuringMachine
@@ -252,7 +253,7 @@ int main(int argc, char *argv[])
 
         auto result = async(simulate_tm, TM, INPUT_STRING);
 
-        if (result.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        if (result.wait_for(std::chrono::seconds(TIMEOUT_IN_SECONDS)) == std::future_status::timeout)
         {
             cout << "------------------------------------------------" << endl;
             cout<<"Loop Detected!"<<endl;
