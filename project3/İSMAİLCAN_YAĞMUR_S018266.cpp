@@ -9,113 +9,137 @@
 #include <algorithm>
 #include <functional>
 
-using namespace std; 
-vector<string> FILE_STATES{ "INPUT","TAPE","BLANK","STATES","START","ACCEPT","REJECT","TRANSITION","STRING" };
-typedef map<string, map<string,map<string,map<string,string>>>> TransitionFunction;
+#include <future>
+#include <chrono>
 
-struct TuringMachine {
-    set<string> INPUT;
-    set<string> TAPE;
+using namespace std;
+vector<string> FILE_STATES{"INPUT", "TAPE", "BLANK", "STATES", "START", "ACCEPT", "REJECT", "TRANSITION", "STRING"};
+string INPUT_STRING;
+typedef map<string, map<string, map<string, string>>> TransitionFunction;
+
+struct TuringMachine
+{
+    set<string> INPUT_ALPHABET;
+    set<string> TAPE_ALPHABET;
+    list<string> TAPE;
     string BLANK;
     set<string> STATES;
     string START;
     string ACCEPT;
     string REJECT;
     TransitionFunction TRANSITIONS;
-    string STRING;
 };
 
+auto FileReader(string file_path)
+{
+    cout << "[INFO]Reading the file : " << file_path << endl;
+    TuringMachine TM;
 
-auto FileReader(string file_path){
+    ifstream file(file_path);
 
-        cout<< "[INFO]Reading the file : "<<file_path << endl;
-        TuringMachine TM;
+    if (!file.is_open())
+    {
+        cout<<"[ERR]File not found."<<endl;
+        throw runtime_error("[ERR]File not found.");
+    }
 
-        ifstream file(file_path);
+    else
+    {
 
-        if (!file.is_open()) {
-            throw runtime_error("[ERR]File not found.");
-        }
+        string line;
+        string file_state;
 
-        else {
-
-            string line;
-            string file_state;
-  
-           while (getline(file, line)) {
-                line.erase(remove_if(line.end()-1, line.end(), ::isspace), line.end()); //to capture each line properly
-                if (find(FILE_STATES.begin(), FILE_STATES.end(), line) != FILE_STATES.end()){
-                    // FILE_STATE found
-                    file_state = line;
-                }
-                else{
-                    if(file_state == FILE_STATES[0]){
-                        istringstream iss(line);
-                        string substring;
-                        while (iss >> substring) {
-                            TM.INPUT.insert(substring);
-                        }
-                    }
-                    else if(file_state == FILE_STATES[1]){
-                        istringstream iss(line);
-                        string substring;
-                        while (iss >> substring) {
-                            TM.TAPE.insert(substring);
-                        }
-                    }
-                    else if(file_state == FILE_STATES[2]){
-                        TM.BLANK = line[0]; // BLANK is a single character
-                        TM.TAPE.insert(TM.BLANK);
-                    }
-                    else if(file_state == FILE_STATES[3]){
-                        istringstream iss(line);
-                        string substring;
-                        while (iss >> substring) {
-                            TM.STATES.insert(substring);
-                        }
-                    }
-                    else if(file_state == FILE_STATES[4]){
-                        TM.START = line; 
-                    }
-                    else if(file_state == FILE_STATES[5]){
-                        TM.ACCEPT = line; 
-                    }
-                    else if(file_state == FILE_STATES[6]){
-                        TM.REJECT = line; 
-                    }                    
-                    else if(file_state == FILE_STATES[7]){
-                        istringstream iss(line);
-                        string input1,input2,input3,input4,input5;
-                        if (!(iss >> input1 >> input2 >> input3 >> input4 >> input5)) { break; } // error
-                        TM.TRANSITIONS[input1][input2][input3][input4] = input5;
-                    } 
-                    else if(file_state == FILE_STATES[8]){
-                        TM.STRING = line; // BLANK is a single character
-                    }
-                }   
-                
-
-
+        while (getline(file, line))
+        {
+            line.erase(remove_if(line.end() - 1, line.end(), ::isspace), line.end()); // to capture each line properly
+            if (find(FILE_STATES.begin(), FILE_STATES.end(), line) != FILE_STATES.end())
+            {
+                // FILE_STATE found
+                file_state = line;
             }
-            file.close();
+            else
+            {
+                if (file_state == FILE_STATES[0])
+                {
+                    istringstream iss(line);
+                    string substring;
+                    while (iss >> substring)
+                    {
+                        TM.INPUT_ALPHABET.insert(substring);
+                    }
+                }
+                else if (file_state == FILE_STATES[1])
+                {
+                    istringstream iss(line);
+                    string substring;
+                    while (iss >> substring)
+                    {
+                        TM.TAPE_ALPHABET.insert(substring);
+                    }
+                }
+                else if (file_state == FILE_STATES[2])
+                {
+                    TM.BLANK = line[0]; // BLANK is a single character
+                    TM.TAPE_ALPHABET.insert(TM.BLANK);
+                }
+                else if (file_state == FILE_STATES[3])
+                {
+                    istringstream iss(line);
+                    string substring;
+                    while (iss >> substring)
+                    {
+                        TM.STATES.insert(substring);
+                    }
+                }
+                else if (file_state == FILE_STATES[4])
+                {
+                    TM.START = line;
+                }
+                else if (file_state == FILE_STATES[5])
+                {
+                    TM.ACCEPT = line;
+                }
+                else if (file_state == FILE_STATES[6])
+                {
+                    TM.REJECT = line;
+                }
+                else if (file_state == FILE_STATES[7])
+                {
+                    istringstream iss(line);
+                    string input1, input2, input3, input4, input5;
+                    if (!(iss >> input1 >> input2 >> input3 >> input4 >> input5))
+                    {
+                        break;
+                    } // error
+                    TM.TRANSITIONS[input1][input2]["overwrite_symbol"] = input3;
+                    TM.TRANSITIONS[input1][input2]["direction"] = input4;
+                    TM.TRANSITIONS[input1][input2]["next_state"] = input5;
+                }
+                else if (file_state == FILE_STATES[8])
+                {
+                    INPUT_STRING = line; // BLANK is a single character
+                }
+            }
         }
- return TM;
-    
+        file.close();
+    }
+    return TM;
 }
 
-//write a method to print TuringMachine
-void printTM(TuringMachine TM){
-    cout << "INPUT: ";
-    for (auto i = TM.INPUT.begin(); i != TM.INPUT.end(); ++i)
+// write a method to print TuringMachine
+void printTM(TuringMachine TM)
+{
+    cout << "INPUT ALPHABET: ";
+    for (auto i = TM.INPUT_ALPHABET.begin(); i != TM.INPUT_ALPHABET.end(); ++i)
         cout << *i << " ";
     cout << endl;
 
-    cout << "TAPE: ";
-    for (auto i = TM.TAPE.begin(); i != TM.TAPE.end(); ++i)
+    cout << "TAPE ALPHABET: ";
+    for (auto i = TM.TAPE_ALPHABET.begin(); i != TM.TAPE_ALPHABET.end(); ++i)
         cout << *i << " ";
     cout << endl;
 
-    cout << "BLANK: " << TM.BLANK << endl;
+    cout << "BLANK SYMBOL: " << TM.BLANK << endl;
 
     cout << "STATES: ";
     for (auto i = TM.STATES.begin(); i != TM.STATES.end(); ++i)
@@ -129,20 +153,80 @@ void printTM(TuringMachine TM){
     cout << "REJECT: " << TM.REJECT << endl;
 
     cout << "TRANSITIONS: " << endl;
-    for (auto i = TM.TRANSITIONS.begin(); i != TM.TRANSITIONS.end(); ++i){
-        for (auto j = i->second.begin(); j != i->second.end(); ++j){
-            for (auto k = j->second.begin(); k != j->second.end(); ++k){
-                for (auto l = k->second.begin(); l != k->second.end(); ++l){
-                    cout << i->first << " " << j->first << " " << k->first << " " << l->first << " " << l->second << endl;
-                }
-            }
+    for (auto i = TM.TRANSITIONS.begin(); i != TM.TRANSITIONS.end(); ++i)
+    {
+        for (auto j = i->second.begin(); j != i->second.end(); ++j)
+        {
+            cout << i->first << " " << j->first << " " << j->second["overwrite_symbol"] << " " << j->second["direction"] << " " << j->second["next_state"] << endl;
         }
     }
 
-    cout << "STRING: " << TM.STRING << endl;
+    // cout << "STRING: " << INPUT_STRING<< endl;
 }
 
+auto simulate_tm(TuringMachine TM, string input_string)
+{
+    // initialize tape
+    for (auto i : input_string)
+    {
+        // convert i to string
+        string s(1, i);
+        TM.TAPE.push_back(s);
+    }
+    auto tape_head = TM.TAPE.begin();
 
+    vector<string> route = {TM.START};
+    auto current_state = TM.START;
+
+    // write while loop until current_state is accept or reject
+    while (current_state != TM.ACCEPT && current_state != TM.REJECT)
+    {
+        // get current symbol
+        string current_symbol = *tape_head;
+
+        // get next state
+        auto overwrite_symbol = TM.TRANSITIONS[current_state][current_symbol]["overwrite_symbol"];
+        auto direction = TM.TRANSITIONS[current_state][current_symbol]["direction"];
+        auto next_state = TM.TRANSITIONS[current_state][current_symbol]["next_state"];
+
+        *tape_head = overwrite_symbol;
+        if (direction == "R")
+        {
+            tape_head++;
+            if (tape_head == TM.TAPE.end())
+            {
+                TM.TAPE.push_back(TM.BLANK);
+                tape_head = TM.TAPE.end();
+                tape_head--;
+            }
+        }
+        else if (direction == "L")
+        {
+            if (tape_head == TM.TAPE.begin())
+            {
+                // stay at the same position
+            }
+            else
+            {
+                tape_head--;
+            }
+        }
+        else
+        {
+            throw invalid_argument("[ERR]Invalid direction.");
+        }
+        current_state = next_state;
+        route.insert(route.end(), current_state);
+    }
+
+    struct returnValues
+    {
+        vector<string> route;
+        string accept_or_reject;
+    };
+
+    return returnValues{route, current_state};
+}
 
 int main(int argc, char *argv[])
 {
@@ -155,16 +239,50 @@ int main(int argc, char *argv[])
     // }
     // string file_path = argv[1];
 
-    try {
-    auto TM = FileReader("input.txt");
-    printTM(TM);
+        TuringMachine TM = FileReader("Input_İSMAİLCAN_YAĞMUR_S018266.txt");
+    
 
+        cout << "----------------Turing Machine Content----------------" << endl;
+        printTM(TM);
 
-   } catch (const invalid_argument& e) {
-        cout << e.what() << endl;
-    } catch (const runtime_error& e) {
-        cout << e.what() << endl;
-    }
+        auto result = async(simulate_tm, TM, INPUT_STRING);
+
+        if (result.wait_for(std::chrono::seconds(5)) == std::future_status::timeout)
+        {
+            cout << "------------------------------------------------" << endl;
+            cout<<"Loop Detected!"<<endl;
+            cout<<"Exiting..."<<endl;
+            throw runtime_error("[ERR]Timeout!");
+        }
+        else
+        {
+            auto results = result.get();
+
+            // print results
+            cout << "----------------Simulation Results----------------" << endl;
+            cout << "ROUT: ";
+            for (auto i = results.route.begin(); i != results.route.end(); ++i)
+            {
+                cout << *i << " ";
+            }
+            cout << endl;
+
+            // if qR then write reject else write accept
+            if (results.accept_or_reject == TM.REJECT)
+            {
+                cout << "RESULT: REJECT" << endl;
+            }
+            else if (results.accept_or_reject == TM.ACCEPT)
+            {
+                cout << "RESULT: ACCEPT" << endl;
+            }
+            else
+            {
+                throw runtime_error("[ERR]Invalid result.");
+            }
+        }
+        cout<<"----------------End of Simulation----------------"<<endl;
+
 
     return 0;
 }
