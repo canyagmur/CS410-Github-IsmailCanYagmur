@@ -76,6 +76,11 @@ auto FileReader(string file_path)
                     {
                         TM.TAPE_ALPHABET.insert(substring);
                     }
+                    //insert input alphabet to tape alphabet
+                    for (auto i = TM.INPUT_ALPHABET.begin(); i != TM.INPUT_ALPHABET.end(); ++i)
+                    {
+                        TM.TAPE_ALPHABET.insert(*i);
+                    }
                 }
                 else if (file_state == FILE_STATES[2])
                 {
